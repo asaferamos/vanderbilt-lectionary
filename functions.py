@@ -22,6 +22,7 @@ def getDailyByYear(year) :
             'dayweek',
             'day',
             'title',
+            'code',
             'first_read',
             'psalm_read',
             'second_read',
@@ -46,10 +47,8 @@ def getDailyByYear(year) :
                         line[0][1],
                         line[0][2]
                     ]
-                    if len(textsOtherPage) < 3:
-                        lineWrite.extend([textsOtherPage[1],textsOtherPage[0]])
-                    else:
-                        lineWrite.extend(textsOtherPage)
+
+                    lineWrite.extend(textsOtherPage)
 
                     csv_write.writerow(lineWrite)
                 else:
@@ -67,6 +66,7 @@ def getDailyByYear(year) :
                     lineWrite = [
                         line[0][0],
                         line[0][1],
+                        "",
                         "",
                         textsDays[1],
                         textsDays[0],
@@ -93,18 +93,24 @@ def getTextPage(url):
         return False
 
     contentText = BeautifulSoup(reqText.text, 'html.parser')
+
+    code = contentText.select('.prayers_infobox ul li a')
+    code = code[0].get('href').split("LectionaryLink=")
+
+    texts = []
+    texts.append(code[1])
+
     title = contentText.select('#main #sidebar h4')[0]
 
     if title.text == ' Easter Vigil ':
         easter = contentText.select('.texts_msg_bar:nth-of-type(1) ul')
-        texts = [
+        texts.append([
             easter[0].text.replace("\n"," ").strip(),
             easter[1].text.replace("\n",""),
             "",
             easter[2].text.replace("\n","")
-        ]
+        ])
     else:
-        texts = []
         for text in contentText.select('.texts_msg_bar:nth-of-type(1) ul li'):
             textReplaced = text.text.replace("\xa0\xa0•\xa0","")
             texts.append(textReplaced)
