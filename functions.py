@@ -18,6 +18,18 @@ def getDailyByYear(year) :
             quotechar='"',
             quoting=csv.QUOTE_MINIMAL
         )
+        csv_write.writerow([
+            'dayweek',
+            'day',
+            'title',
+            'first_read',
+            'psalm_read',
+            'second_read',
+            'gospel_read',
+            'first_read_comp',
+            'psalm_read_comp',
+            'second_read_comp',
+        ])
         # get weeks
         for dailys in content.select('ul.daily_day'):
             # get days
@@ -28,20 +40,50 @@ def getDailyByYear(year) :
                     urlText = day.find('a').get('href')
 
                     line = re.findall(r"^(.*?), (.*?): (.*)$",day.text)
-                    csv_write.writerow([
+                    textsOtherPage = getTextPage(urlText)
+                    lineWrite = [
                         line[0][0],
                         line[0][1],
-                        line[0][2],
-                        getTextPage(urlText)
-                    ])
+                        line[0][2]
+                    ]
+                    if len(textsOtherPage) < 3:
+                        lineWrite.extend([textsOtherPage[1],textsOtherPage[0]])
+                    else:
+                        lineWrite.extend(textsOtherPage)
+
+                    csv_write.writerow(lineWrite)
                 else:
-                    line = re.findall(r"^(.*?), (.*?): (.*)$",day.text)
-                    csv_write.writerow([
+                    dayText = day.text
+                    moreText = re.findall(r"(:|;)\s([a-zA-Z]{1,40})\s([0-9:-]{4,50});\s([0-9:-]{4,50})",dayText)
+                    if len(moreText) > 0:
+                        dayText = dayText.replace(
+                            moreText[0][1] + " " + moreText[0][2] + "; " + moreText[0][3],
+                            moreText[0][1] + " " + moreText[0][2] + " and " + moreText[0][1] + " " + moreText[0][3]
+                        )
+
+                    line = re.findall(r"^(.*?), (.*?): (.*)$",dayText)
+                    textsDays = line[0][2].replace(" OR ","; ")
+                    textsDays = textsDays.split("; ")
+                    lineWrite = [
                         line[0][0],
                         line[0][1],
                         "",
-                        line[0][2].replace("; ",";")
-                    ])
+                        textsDays[1],
+                        textsDays[0],
+                        textsDays[2]
+                    ]
+
+                    if len(textsDays) == 6:
+                        lineWrite.extend([
+                            '',
+                            textsDays[4],
+                            textsDays[3],
+                            textsDays[5]
+                        ])
+                    elif len(textsDays) > 3 or len(textsDays) < 3:
+                        print(textsDays)
+ 
+                    csv_write.writerow(lineWrite)
 
 def getTextPage(url):
     reqText = requests.get(
@@ -51,8 +93,20 @@ def getTextPage(url):
         return False
 
     contentText = BeautifulSoup(reqText.text, 'html.parser')
-    texts = []
-    for text in contentText.select('.texts_msg_bar:nth-of-type(1) ul li a'):
-        texts.append(text.text)
+    title = contentText.select('#main #sidebar h4')[0]
 
-    return ";".join(texts)
+    if title.text == ' Easter Vigil ':
+        easter = contentText.select('.texts_msg_bar:nth-of-type(1) ul')
+        texts = [
+            easter[0].text.replace("\n"," ").strip(),
+            easter[1].text.replace("\n",""),
+            "",
+            easter[2].text.replace("\n","")
+        ]
+    else:
+        texts = []
+        for text in contentText.select('.texts_msg_bar:nth-of-type(1) ul li'):
+            textReplaced = text.text.replace("\xa0\xa0•\xa0","")
+            texts.append(textReplaced)
+
+    return texts
