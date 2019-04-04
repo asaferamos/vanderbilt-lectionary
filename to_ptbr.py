@@ -2,21 +2,29 @@
 # -*- coding: utf-8 -*-
 import sys, csv
 
-if len(sys.argv) < 3:
+if len(sys.argv) < 4:
     sys.exit('Missing arguments')
 
 def translate():
-    toArgument = sys.argv[2].split("to=")
-    with open(sys.argv[1], 'r') as fileReader:
-        reader = csv.reader(
-                    fileReader, delimiter=';',
-                    quotechar='"',
-                    quoting=csv.QUOTE_MINIMAL
+    toArgument = sys.argv[3].split("to=")
+    with open(sys.argv[2], mode='w') as csv_file:
+        csv_write = csv.writer(
+            csv_file, delimiter=';',
+            quotechar='"',
+            quoting=csv.QUOTE_MINIMAL
         )
-        for line in reader:
-            newline = []
-            for col in line:
-                newline.append(translateText(col,toArgument[1]))
+        with open(sys.argv[1], 'r') as fileReader:
+            reader = csv.reader(
+                        fileReader, delimiter=';',
+                        quotechar='"',
+                        quoting=csv.QUOTE_MINIMAL
+            )
+            for line in reader:
+                newline = []
+                for col in line:
+                    newline.append(translateText(col,toArgument[1]))
+
+                csv_write.writerow(newline)
 
 def translateText(text,to):
     texts = {
@@ -46,7 +54,7 @@ def translateText(text,to):
 		'Liturgy of the Passion' 			: 'Liturgy of the Passion',
 		'Maundy Thursday' 					: 'Quinta-Feira Santa',
 		'Monday of Holy Week' 				: 'Segunda-Feira da Semana Santa',
-		'Nativity of the Lord' 				: 'Nativity of the Lord',
+		'Nativity of the Lord' 				: 'Nascimento de Jesus',
 		'New Year\'s Day' 					: 'Dia de Ano Novo',
 		'Reign of Christ' 					: 'Reino de Cristo',
 		'Resurrection of the Lord'			: 'Ressurreição de Cristo',
@@ -156,12 +164,14 @@ def translateText(text,to):
 		' and '				: ' e '
     }
 
-    newText = ""
-    for key,val in texts.items():
-        newText = text.replace(key,val)
-        if newText != text:
-            return newText
+    newText = text
+    if to == 'pt':
+        for key,val in texts.items():
+            newText = newText.replace(key,val)
+    else:
+        for key,val in texts.items():
+            newText = newText.replace(val,key)
 
-    return text
+    return newText
 
 translate()
